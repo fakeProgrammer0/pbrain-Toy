@@ -33,7 +33,7 @@ tips: 实际编程中，可以用异或运算来代替哈希值的+-运算。一
 
 ```javascript
 {
-	   hashVal: 1339368269,
+	 hashVal: 1339368269,
 	checksum: 2226023961
 }
 ```
@@ -58,7 +58,7 @@ A: 定义数据结构 MultiKeysNode:
 	score: 9999 // 局面的启发评价值
 	depth: 4 // 当前局面往下搜索的深度
 	move: branch2 // 当前局面的最优分支走法  
-	turn: 0 // 如果有必要，记录当前局面是轮到哪一方走棋
+	// turn: 0 // 如果有必要，记录当前局面是轮到哪一方走棋
 	scoreType: EXACT, LOWER_BOUND 或 UPPER_BOUND // 启发评价值的类型 
 }
 ```
