@@ -66,7 +66,7 @@ A: 定义数据结构 MultiKeysNode:
 因为搜索的深度越深，得到的启发评价值越可靠。所以记录局面往下搜索的深度，便于对是否使用该启发评价值作出判断：如果当前局面往下搜索的深度大于记录的深度，那么舍弃该值，继续往下搜索。~当然也可以尝试用该启发评价值调整AlphaBeta搜索的窗口 (apha, beta)~
 
 而记录局面的启发评价值类型，是因为在AlphaBeta搜索中，因为剪枝的存在，一个节点的返回值有可能不是精确值。AlphaBeat搜索中存在3种节点：
-* Alpha节点：该节点往下搜索的各个分支的启发评价值都小于alpha值，该节点返回的实际启发评价值小于alpha值，即alpha值表示着一个上限 UPPER_BOUND
+* Alpha节点：该节点往下搜索的各个分支的启发评价值都小于alpha值，该节点返回的**实际启发评价值**小于alpha值，即alpha值表示着一个上限 UPPER_BOUND
 * Beta节点：该节点的某一分支引发剪枝，导致该节点的所有分支没有搜索完，该节点返回的实际启发评价值小于实际的值，代表着一个下限 LOWER_BOUND
 * PV节点：该节点返回的启发评价值等于实际上的值
 
@@ -114,15 +114,21 @@ private:
 	int depth;
 	int score;
 	Mov move;
-	int turn;
 	ScoreType scoreType;
+	//int turn; 
+	// 对于五子棋来说，只要确定了先手方，根据棋子数目是奇数还是偶数，接下来轮到谁走棋是固定的
+	// 所以对于一个局面来说，没有必要记录turn
 public:
-	BoardNode(){}
-	BoardNode(int score, int depth, int turn, Mov move, ScoreType scoreType=EXACT)
+
+	BoardNode()
+	{
+
+	}
+
+	BoardNode(int score, int depth, Mov move, ScoreType scoreType=EXACT)
 	{
 		this->depth = depth;
 		this->score = score;
-		this->turn = turn;
 		this->move = move;
 		this->scoreType = scoreType;
 	}
@@ -137,9 +143,8 @@ private:
 	unordered_map<MultiKeysNode, BoardNode, MultiKeysNode_hash>* boardNodeMap;
 
 	// 实际编程实现中，没有使用三维数组，使用一维长数组+下标转化方法tableIdxFromBoardIdx，效率更优一些
-
 	int rndTableSize;
-	size_t *hashIndexTable; 
+	size_t *hashIndexTable;
 	size_t *checksumTable;
 
 	size_t currBoardHashVal;
@@ -147,24 +152,28 @@ private:
 
 	void initRandomTable();
 	int tableIdxFromBoardIdx(int player, int x, int y) const;
-	MultiKeysNode currKeyNode(); // 当前局面的key
+	MultiKeysNode currKeyNode();
 
 	// 置换表插入次数和查询成功次数，用于衡量置换表的效率
-	int insertCnt; 
+	int insertCnt;
 	int searchHitCnt;
 
 protected:
+	//static TransTable *instance;
 	TransTable(int initCapacity=16);
+	//TransTable(const TransTable& other);
+	//TransTable& operator=(const TransTable& other);
+	
 	~TransTable();
 
 public:
-	static TransTable& getInstance(); // 单实例类
+	static TransTable& getInstance();
 
-	// 标记棋盘上的棋子// 标记棋盘上的棋子
+	// 标记棋盘上的棋子
 	void MarkMove(int player, int x, int y);
 	void UnmarkMove(int player, int x, int y);
 
-	void insertCurrBoardNode(int score, int depth, int turn, Mov move, ScoreType scoreType = EXACT);
+	void insertCurrBoardNode(int score, int depth, Mov move = {-1, -1, -10001}, ScoreType scoreType = EXACT);
 	bool searchCurrBoardNode();
 	BoardNode* getCurrBoardNode(); // 获取当前棋盘节点的BoardNode
 
@@ -176,12 +185,14 @@ public:
 	int getInsertCnt() const;
 	int getSearchHitCnt() const;
 	void incrementSearchHitCnt();
+	double getHitRate() const;
 };
 
 #endif // !TransTable
 ```
 
 ```c++
+// TransTable.cpp
 #include "TransTable.h"
 #include <random>
 #include <ctime>
@@ -272,9 +283,9 @@ void TransTable::UnmarkMove(int player, int x, int y)
 	currBoardChecksum ^= checksumTable[tableIdxFromBoardIdx(player, x, y)];
 }
 
-void TransTable::insertCurrBoardNode(int score, int depth, int turn, Mov move, ScoreType scoreType)
+void TransTable::insertCurrBoardNode(int score, int depth, Mov move, ScoreType scoreType)
 {
-	BoardNode node(score, depth, turn, move, scoreType);
+	BoardNode node(score, depth, move, scoreType);
 	(*boardNodeMap)[currKeyNode()] = node;
 	insertCnt++;
 }
@@ -317,6 +328,11 @@ int TransTable::getSearchHitCnt() const
 void TransTable::incrementSearchHitCnt()
 {
 	searchHitCnt++;
+}
+
+double TransTable::getHitRate() const
+{
+	return 1.0 * searchHitCnt / insertCnt;
 }
 
 ```

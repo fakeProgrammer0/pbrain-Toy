@@ -39,8 +39,10 @@ private:
 	int depth;
 	int score;
 	Mov move;
-	int turn;
 	ScoreType scoreType;
+	//int turn; 
+	// 对于五子棋来说，只要确定了先手方，根据棋子数目是奇数还是偶数，接下来轮到谁走棋是固定的
+	// 所以对于一个局面来说，没有必要记录turn
 public:
 
 	BoardNode()
@@ -48,11 +50,10 @@ public:
 
 	}
 
-	BoardNode(int score, int depth, int turn, Mov move, ScoreType scoreType=EXACT)
+	BoardNode(int score, int depth, Mov move, ScoreType scoreType=EXACT)
 	{
 		this->depth = depth;
 		this->score = score;
-		this->turn = turn;
 		this->move = move;
 		this->scoreType = scoreType;
 	}
@@ -75,11 +76,6 @@ public:
 	int getDepth() const
 	{
 		return depth;
-	}
-
-	int getTurn() const
-	{
-		return turn;
 	}
 
 	Mov getMove() const
@@ -135,7 +131,7 @@ public:
 	void MarkMove(int player, int x, int y);
 	void UnmarkMove(int player, int x, int y);
 
-	void insertCurrBoardNode(int score, int depth, int turn, Mov move, ScoreType scoreType = EXACT);
+	void insertCurrBoardNode(int score, int depth, Mov move = {-1, -1, -10001}, ScoreType scoreType = EXACT);
 	bool searchCurrBoardNode();
 	BoardNode* getCurrBoardNode(); // 获取当前棋盘节点的BoardNode
 

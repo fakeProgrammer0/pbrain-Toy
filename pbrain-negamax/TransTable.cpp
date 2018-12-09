@@ -88,9 +88,9 @@ void TransTable::UnmarkMove(int player, int x, int y)
 	currBoardChecksum ^= checksumTable[tableIdxFromBoardIdx(player, x, y)];
 }
 
-void TransTable::insertCurrBoardNode(int score, int depth, int turn, Mov move, ScoreType scoreType)
+void TransTable::insertCurrBoardNode(int score, int depth, Mov move, ScoreType scoreType)
 {
-	BoardNode node(score, depth, turn, move, scoreType);
+	BoardNode node(score, depth, move, scoreType);
 	(*boardNodeMap)[currKeyNode()] = node;
 	insertCnt++;
 }

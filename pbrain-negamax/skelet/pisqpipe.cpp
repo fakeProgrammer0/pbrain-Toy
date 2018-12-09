@@ -36,11 +36,11 @@ int firstPlayer = 1;//记录先手是谁，用于禁手判断，初始化为1（引擎的对手）
 static char cmd[256];
 static HANDLE event1,event2;
 
-char logfilePath[256] = "D:\\MyData\\Code\\CPP\\AIlab1\\03-带禁手五子棋客户端(对战平台)\\debug\\Killer2_log.txt";
+//char logfilePath[256] = "D:\\MyData\\Code\\CPP\\AIlab1\\03-带禁手五子棋客户端(对战平台)\\debug\\Killer2_log.txt";
 //char logfilePath[256] = "D:\\MyData\\Code\\CPP\\AIlab1\\03-带禁手五子棋客户端(对战平台)\\debug\\Killer_log.txt";
 //char logfilePath[256] = "D:\\MyData\\Code\\CPP\\AIlab1\\03-带禁手五子棋客户端(对战平台)\\debug\\debug_FB_log.txt";
 //char logfilePath[256] = "D:\\MyData\\Code\\CPP\\AIlab1\\03-带禁手五子棋客户端(对战平台)\\debug\\AB_TT_log.txt";
-//char logfilePath[256] = "D:\\MyData\\Code\\CPP\\AIlab1\\03-带禁手五子棋客户端(对战平台)\\debug\\PVS_TT_log.txt";
+char logfilePath[256] = "D:\\MyData\\Code\\CPP\\AIlab1\\03-带禁手五子棋客户端(对战平台)\\debug\\PVS_TT_log.txt";
 //char logfilePath[256] = "D:\\MyData\\Code\\CPP\\AIlab1\\03-带禁手五子棋客户端(对战平台)\\debug\\debug_PVS_log.txt";
 //char logfilePath[256] = "D:\\MyData\\Code\\CPP\\AIlab1\\03-带禁手五子棋客户端(对战平台)\\debug\\debug_log.txt";
 //char logfilePath[256] = "D:\\MyData\\Code\\CPP\\AIlab1\\03-带禁手五子棋客户端(对战平台)\\debug\\debug_ABTT_log.txt";

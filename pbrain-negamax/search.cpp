@@ -419,326 +419,6 @@ int NegaMax00(int depth, int player, int MaxDepth)
 	return bestVal;
 }
 
-/*@green
-固定层数极大极小过程 等价于NegMax00 
-对提升算法没有任何帮助，就当熟悉一下逻辑吧*/
-//int MinMax(int depth, int player, int MaxDepth)
-//{
-//	if (depth <= 0)
-//	{
-//		return evaluate(0); // 因为是MinMax过程，所以局面的评价都是从Max节点出发的
-//	}
-//
-//	int moveListLen = 0;
-//	Mov* moveList = GenerateMoves(moveListLen, player);
-//
-//	if (moveListLen == 0)
-//	{
-//		//pipeOut("gen movelist is empty");
-//		delete[] moveList;
-//		moveList = NULL;
-//		return evaluate(0);
-//	}
-//
-//	int bestMoveIndex = -1;
-//	int bestVal = player == 0 ? -9999 : 9999; // player == 0 当前为Max节点？？
-//	for (int i = 0;i < moveListLen;i++)
-//	{
-//		// 如果超时或被强制结束，停止搜索
-//		if (terminate_v || GetTickCount() >= stopTime())
-//		{
-//			break;
-//		}
-//
-//		MakeMove(moveList[i], player);
-//
-//		// 下完这步棋后，棋局结束，player获得胜利
-//		// 有个坑在于：isGameOver函数没有在棋盘上放置棋子，所以isGameOver函数要在MakeMove函数之后执行
-//		// 写在for循环里判断，而不是放在MinMax的开始位置，可以起到剪枝的效果，这样剩下到[兄弟节点]就没必要搜索了
-//		if (isGameOver(moveList[i]))
-//		{
-//			bestVal = player == 0 ? 9999 : -9999;
-//			// 处理depth==MaxDepth的情况
-//			bestMoveIndex = i;
-//			UnmakeMove(moveList[i]);
-//			break;
-//		}
-//
-//		moveList[i].val = MinMax(depth - 1, 1 - player, MaxDepth); // 更新儿子节点的启发评价分数
-//		UnmakeMove(moveList[i]);
-//
-//		if (player == 0)
-//		{
-//			if (moveList[i].val > bestVal)
-//			{
-//				bestVal = moveList[i].val;
-//				bestMoveIndex = i;
-//			}
-//		}
-//		else {
-//			if (moveList[i].val < bestVal)
-//			{
-//				bestVal = moveList[i].val;
-//				bestMoveIndex = i;
-//			}
-//		}
-//	}
-//	
-//	// 返回到MinMax最开始到父节点，设置该节点的下一步选择 bestMove
-//	if (depth == MaxDepth)
-//	{
-//		bestMove = moveList[bestMoveIndex];
-//	}
-//	delete[] moveList;
-//	moveList = NULL;
-//
-//	return bestVal;
-//}
-//
-//int purge = 0;
-//
-//// @green
-//// 简单的ApphaBeta过程，局面的评价以max方为准：evalutate(0)
-//int AlphaBeta(int MaxDepth, int depth, int player, int alpha, int beta)
-//{
-//	if (depth <= 0)
-//	{
-//		return evaluate(0);
-//	}
-//
-//	int moveListLen = 0;
-//	Mov* moveList = GenerateMoves(moveListLen, player);
-//
-//	if (moveListLen == 0)
-//	{
-//		delete[] moveList;
-//		moveList = NULL;
-//		return evaluate(0);
-//	}
-//
-//	int bestVal = player == 0 ? -9999 : 9999;
-//	int bestMoveIndex = -1;
-//	for (int i = 0; i < moveListLen; i++)
-//	{
-//		if (terminate_v || GetTickCount() + 1 >= stopTime())
-//		{
-//			break;
-//		}
-//
-//		MakeMove(moveList[i], player);
-//
-//		// debug @green
-//		/*if (purge)
-//		{
-//			if (purge == 1) pipeOut("Alpha Purge");
-//			else pipeOut("Beta Purge");
-//			purge = 0;
-//		}
-//		printBoard();*/
-//		
-//
-//		if (isGameOver(moveList[i]))
-//		{
-//			if (depth == MaxDepth)
-//			{
-//				bestMove = moveList[bestMoveIndex];
-//			}
-//			UnmakeMove(moveList[i]);
-//			delete[] moveList;
-//			moveList = NULL;
-//			bestVal = player == 0 ? 9999 : -9999;
-//			return bestVal;
-//		}
-//
-//		moveList[i].val = AlphaBeta(MaxDepth, depth - 1, 1 - player, alpha, beta);
-//		UnmakeMove(moveList[i]);
-//
-//		if (player == 0)
-//		{
-//			if (moveList[i].val > bestVal)
-//			{
-//				bestVal = moveList[i].val;
-//				bestMoveIndex = i;
-//			}
-//
-//			if (moveList[i].val > alpha) // 更新max节点的alpha值
-//			{
-//				alpha = moveList[i].val;
-//			}
-//
-//			if (moveList[i].val >= beta)
-//			{
-//				purge = 2;
-//				break;
-//			}
-//			
-//		}
-//		else
-//		{
-//			if (moveList[i].val < bestVal)
-//			{
-//				bestVal = moveList[i].val;
-//				bestMoveIndex = i;
-//			}
-//
-//			if (moveList[i].val < beta)
-//			{
-//				beta = moveList[i].val;
-//			}
-//
-//			// 在Min节点发生alpha剪枝，剪去该Min节点的其它分支
-//			if (moveList[i].val <= alpha)
-//			{
-//				purge = 1;
-//				break;
-//			}
-//		}
-//	}
-//
-//	if (depth == MaxDepth)
-//	{
-//		bestMove = moveList[bestMoveIndex];
-//	}
-//
-//	delete[] moveList;
-//	moveList = NULL;
-//	return bestVal;
-//}
-//
-//
-//// alphaBeta搜索
-//int alphabeta(int depth,int alpha,int beta,int player,int MaxDepth)
-//{
-//	if (depth == 0)
-//	{
-//		return evaluate(0);
-//	}
-//
-//	int moveListLen = 0;
-//	Mov* moveList = GenerateMoves(moveListLen, player);
-//
-//	if (moveListLen == 0)
-//	{
-//		delete[] moveList;
-//		moveList = NULL;
-//		return evaluate(0);
-//	}
-//
-//	int bestMoveIndex = -1;
-//	for (int i = 0; i < moveListLen; i++)
-//	{
-//		if (terminate_v | GetTickCount() >= stopTime())
-//		{
-//			break;
-//		}
-//
-//		MakeMove(moveList[i], player);
-//		if (isGameOver(moveList[i]))
-//		{
-//			if (depth == MaxDepth)
-//			{
-//				bestMove = moveList[bestMoveIndex];
-//			}
-//			UnmakeMove(moveList[i]);
-//			delete[]moveList;
-//			moveList = NULL;
-//			return player == 0 ? 9999 : -9999;
-//		}
-//
-//		moveList[i].val = alphabeta(depth - 1, alpha, beta, 1 - player, MaxDepth);
-//		UnmakeMove(moveList[i]);
-//
-//		if (player == 0)
-//		{
-//			if (moveList[i].val > alpha)
-//			{
-//				alpha = moveList[i].val;
-//				if (alpha >= beta)
-//					break;
-//			}
-//		}
-//		else
-//		{
-//			if (moveList[i].val < beta)
-//			{
-//				beta = moveList[i].val;
-//				if (beta <= alpha)
-//					break;
-//			}
-//		}
-//	}
-//
-//	if (depth == MaxDepth)
-//	{
-//		bestMove = moveList[bestMoveIndex];
-//	}
-//
-//	delete[]moveList;
-//	moveList = NULL;
-//	return player == 0 ? alpha : beta;
-//}
-//
-//int NegaMaxAlphaBeta(int depth, int alpha, int beta, int player, int MaxDepth)
-//{
-//	if (depth == 0)
-//	{
-//		return evaluate(player);
-//	}
-//
-//	int moveListLen = 0;
-//	Mov* moveList = GenerateMoves(moveListLen, player);
-//
-//	if (moveListLen == 0)
-//	{
-//		delete[] moveList;
-//		moveList = NULL;
-//		return evaluate(player);
-//	}
-//
-//	int bestMoveIndex = -1;
-//	for (int i = 0; i < moveListLen; i++)
-//	{
-//		/*pipeOut("startTime: %ul", start_time);
-//		pipeOut(" stopTime: %ul", stopTime());
-//		pipeOut(" currTime: %ul", GetTickCount());
-//		pipeOut(" use_Time: %ul\n", GetTickCount() - start_time);*/
-//
-//		if (terminate_v | GetTickCount() >= stopTime())
-//		{
-//			break;
-//		}
-//
-//		MakeMove(moveList[i], player);
-//		if (isGameOver(moveList[i]))
-//		{
-//			UnmakeMove(moveList[i]);
-//			bestMoveIndex = i;
-//			alpha = 9999;
-//			break;
-//		}
-//
-//		moveList[i].val = -NegaMaxAlphaBeta(depth - 1, -beta, -alpha, 1 - player, MaxDepth);
-//		UnmakeMove(moveList[i]);
-//		
-//		if (moveList[i].val > alpha)
-//		{
-//			alpha = moveList[i].val;
-//			//if (depth == MaxDepth)
-//				bestMoveIndex = i;
-//		}
-//		if (alpha >= beta)
-//			break;
-//	}
-//
-//	if (depth == MaxDepth)
-//		bestMove = moveList[bestMoveIndex];
-//
-//	delete[] moveList;
-//	moveList = NULL;
-//
-//	return alpha;
-//}
-
 
 // AlphaBeta负极大值+历史启发值
 int NegaMaxAlphaBetaHistory(int depth, int alpha, int beta, int player, int MaxDepth)
@@ -768,13 +448,7 @@ int NegaMaxAlphaBetaHistory(int depth, int alpha, int beta, int player, int MaxD
 				}
 			}
 
-			if (turn == currBoardNode->getTurn()) return currBoardNode->getScore();
-			pipeOut("DEBUG BUT turn != player");
-			
-			//clog << "DEBUG BUT turn != player" << endl;
-			//logFile("DEBUG BUT turn != player");
-
-			return -currBoardNode->getScore();
+			return currBoardNode->getScore();
 		}
 	}
 
@@ -888,7 +562,7 @@ int NegaMaxAlphaBetaHistory(int depth, int alpha, int beta, int player, int MaxD
 				pipeOut("DEBUG Invalid insert Move:[%d,%d]", moveList[bestMoveIndex].x, moveList[bestMoveIndex].y);
 			}
 
-			TransTable::getInstance().insertCurrBoardNode(alpha, depth, turn, moveList[bestMoveIndex]);
+			TransTable::getInstance().insertCurrBoardNode(alpha, depth, moveList[bestMoveIndex]);
 			//pipeOut("DEBUG Insert current board node in TransTable");
 			//logFile("DEBUG Insert current board node in TransTable");
 			//clog << "DEBUG Insert current board node in TransTable" << endl;
@@ -941,9 +615,7 @@ int PVS(int depth, int alpha, int beta, int player, int MaxDepth)
 					bestMove = currBoardNode->getMove();
 			}
 
-			if (turn == currBoardNode->getTurn()) return currBoardNode->getScore();
-			pipeOut("DEBUG BUT TURN is opponent's turn!");
-			return -currBoardNode->getScore();
+			return currBoardNode->getScore();
 		}
 	}
 
@@ -1030,7 +702,7 @@ int PVS(int depth, int alpha, int beta, int player, int MaxDepth)
 					pipeOut("DEBUG ERROR: insert an invalid move into TT");
 					pipeOut("DEBUG invalid move:[%d,%d]", moveList[bestMoveIndex].x, moveList[bestMoveIndex].y);
 				}else
-					TransTable::getInstance().insertCurrBoardNode(bestScore, depth, turn, moveList[bestMoveIndex]);
+					TransTable::getInstance().insertCurrBoardNode(bestScore, depth, moveList[bestMoveIndex]);
 			}
 		}
 		
@@ -1058,7 +730,6 @@ int PVS_TT(int depth, int alpha, int beta, int player, int MaxDepth)
 	if (TransTable::getInstance().searchCurrBoardNode()) // 在置换表中找到了当前节点
 	{
 		BoardNode* currBoardNode = TransTable::getInstance().getCurrBoardNode();
-		if (currBoardNode == NULL) pipeOut("DEBUG ERROR: Get NULL BoardNode From TT"); // 应该不会出现吧
 		if (currBoardNode->getDepth() >= depth) // 并且深度大于等于当前节点往下搜索的深度
 		{
 			TransTable::getInstance().incrementSearchHitCnt();
@@ -1093,26 +764,19 @@ int PVS_TT(int depth, int alpha, int beta, int player, int MaxDepth)
 			{
 				if (depth == MaxDepth)
 				{
-					if (!isFree(currBoardNode->getMove().x, currBoardNode->getMove().y))
-					{
-						pipeOut("DEBUG ERROR: get an invalid move from TT");
-						pipeOut("DEBUG invalid move:[%d,%d]", currBoardNode->getMove().x, currBoardNode->getMove().y);
-					}
-					else
-						bestMove = currBoardNode->getMove();
+					bestMove = currBoardNode->getMove();
 				}
 
-				if (turn == currBoardNode->getTurn()) return currBoardNode->getScore();
-				pipeOut("DEBUG ERROR: BUT TURN is opponent's turn!"); // 应该不会发生，对于五子棋来说，只要确定了先手方，两个局面上棋子数目相同，接下来轮到谁走棋是固定的
-				return -currBoardNode->getScore();
+				return currBoardNode->getScore();
 			}
 		}
 	}
 
 	if (depth <= 0)
 	{
-		int score = evaluate_turn(player, turn);
-		//TransTable::getInstance().insertCurrBoardNode(score, depth, turn, move)
+		//int score = evaluate_turn(player, turn);
+		int score = evaluate(player); // 使用简单启发评价函数
+		//TransTable::getInstance().insertCurrBoardNode(score, depth);
 		return score;
 	}
 
@@ -1131,11 +795,6 @@ int PVS_TT(int depth, int alpha, int beta, int player, int MaxDepth)
 	}
 
 	moveList = MergeSort(moveList, moveListLen);
-
-	if (depth == MaxDepth && depth > 2 && moveList[0] != bestMove)
-	{
-		pipeOut("DEBUG ERROR: current best Search branch is not last best Search bestMove!");
-	}
 
 	ScoreType bestScoreType = UPPER_BOUND;
 	int bestMoveIndex = -1;
@@ -1199,11 +858,11 @@ int PVS_TT(int depth, int alpha, int beta, int player, int MaxDepth)
 		{
 			if (bestScoreType == EXACT)
 			{
-				TransTable::getInstance().insertCurrBoardNode(bestScore, depth, turn, moveList[bestMoveIndex], bestScoreType);
+				TransTable::getInstance().insertCurrBoardNode(bestScore, depth, moveList[bestMoveIndex], bestScoreType);
 			}
 			else // UPPER_BOUND 或 LOWER_BOUND
 			{
-				TransTable::getInstance().insertCurrBoardNode(alpha, depth, turn, moveList[bestMoveIndex], bestScoreType);
+				TransTable::getInstance().insertCurrBoardNode(alpha, depth, moveList[bestMoveIndex], bestScoreType);
 			}
 		}
 
@@ -1214,13 +873,7 @@ int PVS_TT(int depth, int alpha, int beta, int player, int MaxDepth)
 
 		if (depth == MaxDepth)
 		{
-			if (!isFree(moveList[bestMoveIndex].x, moveList[bestMoveIndex].y))
-			{
-				pipeOut("DEBUG ERROR: return an invalid move at root node");
-				pipeOut("DEBUG invalid move:[%d,%d]", moveList[bestMoveIndex].x, moveList[bestMoveIndex].y);
-			}
-			else
-				bestMove = moveList[bestMoveIndex];
+			bestMove = moveList[bestMoveIndex];
 		}
 	}
 
@@ -1275,9 +928,7 @@ int PVS_Killer(int depth, int alpha, int beta, int player, int MaxDepth)
 						bestMove = currBoardNode->getMove();
 				}
 
-				if (turn == currBoardNode->getTurn()) return currBoardNode->getScore();
-				pipeOut("DEBUG ERROR: BUT TURN is opponent's turn!");
-				return -currBoardNode->getScore();
+				return currBoardNode->getScore();
 			}
 		}
 	}
@@ -1378,11 +1029,11 @@ int PVS_Killer(int depth, int alpha, int beta, int player, int MaxDepth)
 		{
 			if (bestScoreType == EXACT)
 			{
-				TransTable::getInstance().insertCurrBoardNode(bestScore, depth, turn, moveList[bestMoveIndex], bestScoreType);
+				TransTable::getInstance().insertCurrBoardNode(bestScore, depth, moveList[bestMoveIndex], bestScoreType);
 			}
 			else // UPPER_BOUND 或 LOWER_BOUND
 			{
-				TransTable::getInstance().insertCurrBoardNode(alpha, depth, turn, moveList[bestMoveIndex], bestScoreType);
+				TransTable::getInstance().insertCurrBoardNode(alpha, depth, moveList[bestMoveIndex], bestScoreType);
 			}
 		}
 
@@ -1473,9 +1124,7 @@ int AB_TT(int depth, int alpha, int beta, int player, int MaxDepth)
 						bestMove = currBoardNode->getMove();
 				}
 
-				if (turn == currBoardNode->getTurn()) return currBoardNode->getScore();
-				pipeOut("DEBUG ERROR: BUT TURN is opponent's turn!");
-				return -currBoardNode->getScore();
+				return currBoardNode->getScore();
 			}
 		}
 	}
@@ -1554,7 +1203,7 @@ int AB_TT(int depth, int alpha, int beta, int player, int MaxDepth)
 		if (!TransTable::getInstance().searchCurrBoardNode() || TransTable::getInstance().getCurrBoardNode()->getDepth() <= depth)
 		{
 			// EXACT, UPPER_BOUND 或 LOWER_BOUND
-			TransTable::getInstance().insertCurrBoardNode(alpha, depth, turn, moveList[bestMoveIndex], bestScoreType);
+			TransTable::getInstance().insertCurrBoardNode(alpha, depth, moveList[bestMoveIndex], bestScoreType);
 		}
 
 
