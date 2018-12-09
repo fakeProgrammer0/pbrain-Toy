@@ -8,8 +8,10 @@ PVS（Principal Variant Search）是对Fail-soft AlphaBeta搜索的改进。它�
 1. 假设第一个分支是最优分支（Principal Variant），进行一次完整的搜索
 2. 之后对其它分支进行搜索时，采用(alpha, alpha+1)的窗口值进行搜索（即把beta换成alpha+1）。因为使用窄窗探测，PVS搜索也被称为极小窗口搜索（Minimal Window Search)。
 	1. 如果之前的最优分支假设是正确的话，那么对当前分支的搜索返回值value<=alpha。**由于使用的窗口值(alpha, alpha+1)比原来的(alpha, beta)更小，所以极大地节省了效率**。
-	2. 如果alpha < value < beta，那么意味着假设错误，返回值甚至有可能比beta大，只是因为alpha+1的限制才使得搜索中发生剪枝，返回值小于实际值，需要重新进行一次完整的AlphaBeta搜索。并把当前节点当作主要变例，继续后续分支的搜索。
+	2. 如果alpha < value < beta，那么意味着假设错误，返回值甚至有可能比beta大，只是因为alpha+1的限制才使得搜索中发生剪枝，返回值小于实际值，需要重新进行一次完整的AlphaBeta搜索，**这时窗口值可以调整为(value, beta)**。并把当前节点当作主要变例，继续后续分支的搜索。
 	3. 如果value >= beta，直接剪枝吧
+
+【注】由于对PVS的原理理解还不是很透彻，之后会加几张图说明下吧
 
 ### 以下是PVS和置换表结合的代码：
 ```c++
@@ -116,7 +118,7 @@ int PVS_TT(int depth, int alpha, int beta, int player, int MaxDepth)
             moveList[i].val = -PVS_TT(depth - 1, -alpha - 1, -alpha, 1 - player, MaxDepth);
             if (alpha < moveList[i].val && moveList[i].val < beta) // 落在区间之间，预测失败，需要进行一次完整的AlphaBeta搜索
             {
-                moveList[i].val = -PVS_TT(depth - 1, -beta, -alpha, 1 - player, MaxDepth);
+                moveList[i].val = -PVS_TT(depth - 1, -beta, -moveList[i].val, 1 - player, MaxDepth);
             }
         }
 

@@ -169,8 +169,10 @@ void IterDeeping()
 		
 		//score = NegaMaxAlphaBetaHistory(depth, -9999, 9999, 0, depth);
 		//score = PVS(depth, -10000, 10000, 0, depth);
-		score = PVS_TT(depth, -10000, 10000, 0, depth);
-		//score = AB_TT(depth, -10000, 10000, 0, depth);
+
+		//score = PVS_TT(depth, -10000, 10000, 0, depth);
+		score = AB_TT(depth, -10000, 10000, 0, depth);
+
 		//score = PVS_Killer(depth, -10000, 10000, 0, depth);
 
 		// 把bestMove的历史启发分数提升至当前历史启发表的最高分数+1
@@ -774,8 +776,8 @@ int PVS_TT(int depth, int alpha, int beta, int player, int MaxDepth)
 
 	if (depth <= 0)
 	{
-		//int score = evaluate_turn(player, turn);
-		int score = evaluate(player); // 使用简单启发评价函数
+		int score = evaluate_turn(player, turn);
+		//int score = evaluate(player); // 使用简单启发评价函数
 		//TransTable::getInstance().insertCurrBoardNode(score, depth);
 		return score;
 	}
@@ -827,7 +829,8 @@ int PVS_TT(int depth, int alpha, int beta, int player, int MaxDepth)
 			moveList[i].val = -PVS_TT(depth - 1, -alpha - 1, -alpha, 1 - player, MaxDepth);
 			if (alpha < moveList[i].val && moveList[i].val < beta) // 落在区间之间，预测失败，需要进行一次完整的AlphaBeta搜索
 			{
-				moveList[i].val = -PVS_TT(depth - 1, -beta, -alpha, 1 - player, MaxDepth);
+				//moveList[i].val = -PVS_TT(depth - 1, -beta, -alpha, 1 - player, MaxDepth);
+				moveList[i].val = -PVS_TT(depth - 1, -beta, -moveList[i].val, 1 - player, MaxDepth);
 			}
 		}
 
@@ -842,10 +845,10 @@ int PVS_TT(int depth, int alpha, int beta, int player, int MaxDepth)
 			{ 
 				alpha = bestScore;
 				bestScoreType = EXACT; // 精确值
-			}; 
+			}
 			if (alpha >= beta) 
 			{ 
-				bestScoreType = LOWER_BOUND; // 发生剪枝，当前节点的返回值只是一个下限，后续有可能搜索到更好的分数
+				bestScoreType = LOWER_BOUND; // 发生剪枝，当前节点的返回值只是一个下限，后续有可能搜索到更好的分数，but剪枝意味着不想再搜索了
 				break; // 剪枝
 			} 
 		}
@@ -1182,8 +1185,7 @@ int AB_TT(int depth, int alpha, int beta, int player, int MaxDepth)
 
 		UnmakeMove(moveList[i]);
 
-		// 更新[当前节点的父结点]的最优子分支上限
-		if (moveList[i].val > alpha) // 更新当前节点的子分支上限
+		if (moveList[i].val > alpha)
 		{
 			alpha = moveList[i].val;
 			bestMoveIndex = i;
