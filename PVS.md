@@ -16,159 +16,159 @@ PVS（Principal Variant Search）是对Fail-soft AlphaBeta搜索的改进。它�
 // Principal Variation Search 主要变例搜索 + 置换表 TT
 int PVS_TT(int depth, int alpha, int beta, int player, int MaxDepth)
 {
-	if (TransTable::getInstance().searchCurrBoardNode()) // 在置换表中找到了当前节点
-	{
-		BoardNode* currBoardNode = TransTable::getInstance().getCurrBoardNode();
-		if (currBoardNode->getDepth() >= depth) // 并且深度大于等于当前节点往下搜索的深度
-		{
-			TransTable::getInstance().incrementSearchHitCnt();
+    if (TransTable::getInstance().searchCurrBoardNode()) // 在置换表中找到了当前节点
+    {
+        BoardNode* currBoardNode = TransTable::getInstance().getCurrBoardNode();
+        if (currBoardNode->getDepth() >= depth) // 并且深度大于等于当前节点往下搜索的深度
+        {
+            TransTable::getInstance().incrementSearchHitCnt();
 
-			bool hitFlag = false;
-			switch (currBoardNode->getScoreType())
-			{
-			case EXACT:
-			{
-				hitFlag = true;
-				break;
-			}
-			case LOWER_BOUND:
-			{
-				if (currBoardNode->getScore() >= beta) // score的值可以引发当前节点的儿子分支剪枝
-				{
-					hitFlag = true;
-				}
-				else break; // 窗口值beta大于score，有可能是之前搜索到进行一半时间不够过早停止
-			}
-			case UPPER_BOUND:
-			{
-				if (currBoardNode->getScore() <= alpha) // score值小于alpha，表明
-				{
-					hitFlag = true;
-				}
-				else break;
-			}
-			}
-			
-			if (hitFlag)
-			{
-				if (depth == MaxDepth)
-				{
-					bestMove = currBoardNode->getMove();
-				}
+            bool hitFlag = false;
+            switch (currBoardNode->getScoreType())
+            {
+            case EXACT:
+            {
+                hitFlag = true;
+                break;
+            }
+            case LOWER_BOUND:
+            {
+                if (currBoardNode->getScore() >= beta) // score的值可以引发当前节点的儿子分支剪枝
+                {
+                    hitFlag = true;
+                }
+                else break; // 窗口值beta大于score，有可能是之前搜索到进行一半时间不够过早停止
+            }
+            case UPPER_BOUND:
+            {
+                if (currBoardNode->getScore() <= alpha) // score值小于alpha，表明
+                {
+                    hitFlag = true;
+                }
+                else break;
+            }
+            }
+            
+            if (hitFlag)
+            {
+                if (depth == MaxDepth)
+                {
+                    bestMove = currBoardNode->getMove();
+                }
 
-				// 对于五子棋来说，只要确定了先手方，根据棋子数目是奇数还是偶数，接下来轮到谁走棋是固定的
-				return currBoardNode->getScore();
-			}
-		}
-	}
+                // 对于五子棋来说，只要确定了先手方，根据棋子数目是奇数还是偶数，接下来轮到谁走棋是固定的
+                return currBoardNode->getScore();
+            }
+        }
+    }
 
-	if (depth <= 0)
-	{
-		int score = evaluate(player);
-		//TransTable::getInstance().insertCurrBoardNode(score, depth); // 存储叶子节点的话，虽然提高了置换表命中率，但是太耗内存。
-		return score;
-	}
+    if (depth <= 0)
+    {
+        int score = evaluate(player);
+        //TransTable::getInstance().insertCurrBoardNode(score, depth); // 存储叶子节点的话，虽然提高了置换表命中率，但是太耗内存。
+        return score;
+    }
 
-	int moveListLen = 0;
-	Mov* moveList = GenerateMoves(moveListLen, player);
-	if (moveListLen == 0)
-	{
-		delete[] moveList;
-		moveList = NULL;
-		return evaluate(player);
-	}
+    int moveListLen = 0;
+    Mov* moveList = GenerateMoves(moveListLen, player);
+    if (moveListLen == 0)
+    {
+        delete[] moveList;
+        moveList = NULL;
+        return evaluate(player);
+    }
 
-	for (int i = 0; i < moveListLen; i++)
-	{
-		moveList[i].val = getHistoryScore(moveList[i], player);
-	}
+    for (int i = 0; i < moveListLen; i++)
+    {
+        moveList[i].val = getHistoryScore(moveList[i], player);
+    }
 
-	moveList = MergeSort(moveList, moveListLen);
+    moveList = MergeSort(moveList, moveListLen);
 
-	ScoreType bestScoreType = UPPER_BOUND;
-	int bestMoveIndex = -1;
-	int bestScore = -10000;
-	for (int i = 0; i < moveListLen; i++)
-	{
-		if (terminate_v || GetTickCount() >= stopTime())
-		{
-			isEarlyStopping = true;
-			break;
-		}
+    ScoreType bestScoreType = UPPER_BOUND;
+    int bestMoveIndex = -1;
+    int bestScore = -10000;
+    for (int i = 0; i < moveListLen; i++)
+    {
+        if (terminate_v || GetTickCount() >= stopTime())
+        {
+            isEarlyStopping = true;
+            break;
+        }
 
-		MakeMove(moveList[i], player);
+        MakeMove(moveList[i], player);
 
-		if (isGameOver(moveList[i]))
-		{
-			UnmakeMove(moveList[i]);
-			bestMoveIndex = i;
-			alpha = bestScore = 9999;
-			break;
-		}
+        if (isGameOver(moveList[i]))
+        {
+            UnmakeMove(moveList[i]);
+            bestMoveIndex = i;
+            alpha = bestScore = 9999;
+            break;
+        }
 
-		if (i == 0) // 对第一个分支进行完整的AlphaBeta搜索
-		{
-			moveList[i].val = -PVS_TT(depth - 1, -beta, -alpha, 1 - player, MaxDepth);
-		}
-		else {
-			// 假设之前搜的分支是最优分支（主要变例），得到分数是最好的，因此用一个窄窗(alpha, alpha+1)进行搜索，返回的分数应该会小于alpha
-			// 由于搜索的窗口值较小，所以时间也比AlphaBeta搜索少很多
-			moveList[i].val = -PVS_TT(depth - 1, -alpha - 1, -alpha, 1 - player, MaxDepth);
-			if (alpha < moveList[i].val && moveList[i].val < beta) // 落在区间之间，预测失败，需要进行一次完整的AlphaBeta搜索
-			{
-				moveList[i].val = -PVS_TT(depth - 1, -beta, -alpha, 1 - player, MaxDepth);
-			}
-		}
+        if (i == 0) // 对第一个分支进行完整的AlphaBeta搜索
+        {
+            moveList[i].val = -PVS_TT(depth - 1, -beta, -alpha, 1 - player, MaxDepth);
+        }
+        else {
+            // 假设之前搜的分支是最优分支（主要变例），得到分数是最好的，因此用一个窄窗(alpha, alpha+1)进行搜索，返回的分数应该会小于alpha
+            // 由于搜索的窗口值较小，所以时间也比AlphaBeta搜索少很多
+            moveList[i].val = -PVS_TT(depth - 1, -alpha - 1, -alpha, 1 - player, MaxDepth);
+            if (alpha < moveList[i].val && moveList[i].val < beta) // 落在区间之间，预测失败，需要进行一次完整的AlphaBeta搜索
+            {
+                moveList[i].val = -PVS_TT(depth - 1, -beta, -alpha, 1 - player, MaxDepth);
+            }
+        }
 
-		UnmakeMove(moveList[i]);
+        UnmakeMove(moveList[i]);
 
-		if (moveList[i].val > bestScore) // 更新当前节点的子分支上限
-		{
-			bestScore = moveList[i].val;
-			bestMoveIndex = i;
+        if (moveList[i].val > bestScore) // 更新当前节点的子分支上限
+        {
+            bestScore = moveList[i].val;
+            bestMoveIndex = i;
 
-			if (bestScore > alpha) // 超过了alpha值的上限，更新alpha值
-			{ 
-				alpha = bestScore;
-				bestScoreType = EXACT; // 精确值
-			}; 
-			if (alpha >= beta) 
-			{ 
-				bestScoreType = LOWER_BOUND; // 发生剪枝，当前节点的返回值只是一个下限，后续有可能搜索到更好的分数
-				break; // 剪枝
-			} 
-		}
-	}
+            if (bestScore > alpha) // 超过了alpha值的上限，更新alpha值
+            {
+                alpha = bestScore;
+                bestScoreType = EXACT; // 精确值
+            };
+            if (alpha >= beta)
+            {
+                bestScoreType = LOWER_BOUND; // 发生剪枝，当前节点的返回值只是一个下限，后续有可能搜索到更好的分数
+                break; // 剪枝
+            }
+        }
+    }
 
-	if (bestMoveIndex != -1) // bestMoveIndex == -1 说明当前节点还没往下搜索，就因为时间不够被停止
-	{
-		// 没有找到节点，或者找到节点的深度小于当前深度
-		if (!TransTable::getInstance().searchCurrBoardNode() || TransTable::getInstance().getCurrBoardNode()->getDepth() <= depth)
-		{
-			if (bestScoreType == EXACT)
-			{
-				TransTable::getInstance().insertCurrBoardNode(bestScore, depth, moveList[bestMoveIndex], bestScoreType);
-			}
-			else // UPPER_BOUND 或 LOWER_BOUND
-			{
-				TransTable::getInstance().insertCurrBoardNode(alpha, depth, moveList[bestMoveIndex], bestScoreType);
-			}
-		}
+    if (bestMoveIndex != -1) // bestMoveIndex == -1 说明当前节点还没往下搜索，就因为时间不够被停止
+    {
+        // 没有找到节点，或者找到节点的深度小于当前深度
+        if (!TransTable::getInstance().searchCurrBoardNode() || TransTable::getInstance().getCurrBoardNode()->getDepth() <= depth)
+        {
+            if (bestScoreType == EXACT)
+            {
+                TransTable::getInstance().insertCurrBoardNode(bestScore, depth, moveList[bestMoveIndex], bestScoreType);
+            }
+            else // UPPER_BOUND 或 LOWER_BOUND
+            {
+                TransTable::getInstance().insertCurrBoardNode(alpha, depth, moveList[bestMoveIndex], bestScoreType);
+            }
+        }
 
-		// 如果是早停的话，搜到的分数不是当前节点的最优分数，只是一个下限
-		if (!isEarlyStopping) {
-			enterHistoryScore(moveList[bestMoveIndex], depth, player);
-		}
+        // 如果是早停的话，搜到的分数不是当前节点的最优分数，只是一个下限
+        if (!isEarlyStopping) {
+            enterHistoryScore(moveList[bestMoveIndex], depth, player);
+        }
 
-		if (depth == MaxDepth)
-		{
-			bestMove = moveList[bestMoveIndex];
-		}
-	}
+        if (depth == MaxDepth)
+        {
+            bestMove = moveList[bestMoveIndex];
+        }
+    }
 
-	delete[] moveList;
-	moveList = NULL;
-	return bestScore;
+    delete[] moveList;
+    moveList = NULL;
+    return bestScore;
 }
 ```
 
