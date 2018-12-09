@@ -147,6 +147,7 @@ public:
 	int getInsertCnt() const;
 	int getSearchHitCnt() const;
 	void incrementSearchHitCnt();
+	double getHitRate() const;
 };
 
 #endif // !TransTable

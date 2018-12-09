@@ -135,3 +135,7 @@ void TransTable::incrementSearchHitCnt()
 	searchHitCnt++;
 }
 
+double TransTable::getHitRate() const
+{
+	return 1.0 * searchHitCnt / insertCnt;
+}

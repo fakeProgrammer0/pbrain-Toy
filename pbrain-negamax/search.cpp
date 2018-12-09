@@ -169,16 +169,15 @@ void IterDeeping()
 		
 		//score = NegaMaxAlphaBetaHistory(depth, -9999, 9999, 0, depth);
 		//score = PVS(depth, -10000, 10000, 0, depth);
-		//score = PVS_TT(depth, -10000, 10000, 0, depth);
+		score = PVS_TT(depth, -10000, 10000, 0, depth);
 		//score = AB_TT(depth, -10000, 10000, 0, depth);
-		score = PVS_Killer(depth, -10000, 10000, 0, depth);
+		//score = PVS_Killer(depth, -10000, 10000, 0, depth);
 
 		// 把bestMove的历史启发分数提升至当前历史启发表的最高分数+1
 		// 用于确保迭代加深过程中，下一次迭代最先搜索的分支是上一次得到的最优分支
 		// 尽管不是很恰当，但是这个微小的变化，也不会对搜索产生太大偏向影响
 		promoteHistoryScoreToMax(bestMove, 0);
 
-		//scoreQueue.push()
 
 		pipeOut("DEBUG BestScore:%d",score);
 		pipeOut("DEBUG BestMove:[%d,%d],%d",bestMove.x,bestMove.y,bestMove.val);
@@ -239,6 +238,7 @@ void IterDeeping()
 	UnmakeMove(bestMove);
 	pipeOut("DEBUG board evaluation:");
 	pipeOut("DEBUG before move : %d; after move : %d", beforeMoveEvalScore, afterMoveEvalScore);
+	pipeOut("DEBUG TT insertCnt:%d;hitCnt:%d;hit rate:%.2f", TransTable::getInstance().getInsertCnt(), TransTable::getInstance().getSearchHitCnt(), TransTable::getInstance().getHitRate());
 
 	do_mymove(bestMove.x,bestMove.y);
 }
@@ -1050,7 +1050,7 @@ int PVS(int depth, int alpha, int beta, int player, int MaxDepth)
 	return bestScore;
 }
 
-// Principal Variation Search 主要变例搜索
+// Principal Variation Search 主要变例搜索 + 置换表 TT
 int PVS_TT(int depth, int alpha, int beta, int player, int MaxDepth)
 {
 	int turn = (MaxDepth - depth) % 2;
@@ -1058,33 +1058,38 @@ int PVS_TT(int depth, int alpha, int beta, int player, int MaxDepth)
 	if (TransTable::getInstance().searchCurrBoardNode()) // 在置换表中找到了当前节点
 	{
 		BoardNode* currBoardNode = TransTable::getInstance().getCurrBoardNode();
-		if (currBoardNode != NULL && currBoardNode->getDepth() >= depth) // 并且深度大于等于当前节点往下搜索的深度
+		if (currBoardNode == NULL) pipeOut("DEBUG ERROR: Get NULL BoardNode From TT"); // 应该不会出现吧
+		if (currBoardNode->getDepth() >= depth) // 并且深度大于等于当前节点往下搜索的深度
 		{
 			TransTable::getInstance().incrementSearchHitCnt();
 
-			int returnVal = -10001;
+			bool hitFlag = false;
 			switch (currBoardNode->getScoreType())
 			{
 			case EXACT:
 			{
-				returnVal = currBoardNode->getScore();
+				hitFlag = true;
 				break;
 			}
 			case LOWER_BOUND:
 			{
-				if (currBoardNode->getScore() >= beta)
-					returnVal = currBoardNode->getScore();
-				else break;
+				if (currBoardNode->getScore() >= beta) // score的值可以引发当前节点的儿子分支剪枝
+				{
+					hitFlag = true;
+				}
+				else break; // 窗口值beta大于score，有可能是之前搜索到进行一半时间不够过早停止
 			}
 			case UPPER_BOUND:
 			{
-				if (currBoardNode->getScore() <= alpha)
-					returnVal = currBoardNode->getScore();
+				if (currBoardNode->getScore() <= alpha) // score值小于alpha，表明
+				{
+					hitFlag = true;
+				}
 				else break;
 			}
 			}
 			
-			if (returnVal != -10001)
+			if (hitFlag)
 			{
 				if (depth == MaxDepth)
 				{
@@ -1098,7 +1103,7 @@ int PVS_TT(int depth, int alpha, int beta, int player, int MaxDepth)
 				}
 
 				if (turn == currBoardNode->getTurn()) return currBoardNode->getScore();
-				pipeOut("DEBUG ERROR: BUT TURN is opponent's turn!");
+				pipeOut("DEBUG ERROR: BUT TURN is opponent's turn!"); // 应该不会发生，对于五子棋来说，只要确定了先手方，两个局面上棋子数目相同，接下来轮到谁走棋是固定的
 				return -currBoardNode->getScore();
 			}
 		}
@@ -1127,12 +1132,11 @@ int PVS_TT(int depth, int alpha, int beta, int player, int MaxDepth)
 
 	moveList = MergeSort(moveList, moveListLen);
 
-	if (depth == MaxDepth && depth > 2 && !(moveList[0].x == bestMove.x && moveList[0].y == bestMove.y))
+	if (depth == MaxDepth && depth > 2 && moveList[0] != bestMove)
 	{
 		pipeOut("DEBUG ERROR: current best Search branch is not last best Search bestMove!");
 	}
 
-	//bool isBestScoreExact = false;
 	ScoreType bestScoreType = UPPER_BOUND;
 	int bestMoveIndex = -1;
 	int bestScore = -10000;
@@ -1154,11 +1158,13 @@ int PVS_TT(int depth, int alpha, int beta, int player, int MaxDepth)
 			break;
 		}
 
-		if (i == 0)
+		if (i == 0) // 对第一个分支进行完整的AlphaBeta搜索
 		{
 			moveList[i].val = -PVS_TT(depth - 1, -beta, -alpha, 1 - player, MaxDepth);
 		}
 		else {
+			// 假设之前搜的分支是最优分支（主要变例），得到分数是最好的，因此用一个窄窗(alpha, alpha+1)进行搜索，返回的分数应该会小于alpha
+			// 由于搜索的窗口值较小，所以时间也比AlphaBeta搜索少很多
 			moveList[i].val = -PVS_TT(depth - 1, -alpha - 1, -alpha, 1 - player, MaxDepth);
 			if (alpha < moveList[i].val && moveList[i].val < beta) // 落在区间之间，预测失败，需要进行一次完整的AlphaBeta搜索
 			{
@@ -1173,24 +1179,22 @@ int PVS_TT(int depth, int alpha, int beta, int player, int MaxDepth)
 			bestScore = moveList[i].val;
 			bestMoveIndex = i;
 
-			if (bestScore > alpha) // 更新[当前节点的父结点]的最优子分支上限
+			if (bestScore > alpha) // 超过了alpha值的上限，更新alpha值
 			{ 
 				alpha = bestScore;
-				//isBestScoreExact = true;
-				bestScoreType = EXACT;
+				bestScoreType = EXACT; // 精确值
 			}; 
 			if (alpha >= beta) 
 			{ 
-				//TransTable::getInstance().insertCurrBoardNode(alpha, depth, turn, moveList[bestMoveIndex], LOWER_BOUND);
-				bestScoreType = LOWER_BOUND;
-				break;
-			} // 剪枝
+				bestScoreType = LOWER_BOUND; // 发生剪枝，当前节点的返回值只是一个下限，后续有可能搜索到更好的分数
+				break; // 剪枝
+			} 
 		}
 	}
 
-
-	if (bestMoveIndex != -1)
+	if (bestMoveIndex != -1) // bestMoveIndex == -1 说明当前节点还没往下搜索，就因为时间不够被停止
 	{
+		// 没有找到节点，或者找到节点的深度小于当前深度
 		if (!TransTable::getInstance().searchCurrBoardNode() || TransTable::getInstance().getCurrBoardNode()->getDepth() <= depth)
 		{
 			if (bestScoreType == EXACT)
@@ -1203,35 +1207,16 @@ int PVS_TT(int depth, int alpha, int beta, int player, int MaxDepth)
 			}
 		}
 
-		/*if (isBestScoreExact)
-		{
-			TransTable::getInstance().insertCurrBoardNode(bestScore, depth, turn, moveList[bestMoveIndex], EXACT);
-		}
-		else {
-			TransTable::getInstance().insertCurrBoardNode(alpha, depth, turn, moveList[bestMoveIndex], UPPER_BOUND);
-		}*/
-
-		// 如果是早停的话，搜到到的分数不是当前节点的最优分数，只是一个下限
+		// 如果是早停的话，搜到的分数不是当前节点的最优分数，只是一个下限
 		if (!isEarlyStopping) {
 			enterHistoryScore(moveList[bestMoveIndex], depth, player);
-
-			/*if (!TransTable::getInstance().searchCurrBoardNode() || TransTable::getInstance().getCurrBoardNode()->getDepth() <= depth)
-			{
-				if (!isFree(moveList[bestMoveIndex].x, moveList[bestMoveIndex].y))
-				{
-					pipeOut("DEBUG ERROR: insert an invalid move into TT");
-					pipeOut("DEBUG invalid move:[%d,%d]", moveList[bestMoveIndex].x, moveList[bestMoveIndex].y);
-				}
-				else
-					TransTable::getInstance().insertCurrBoardNode(bestScore, depth, turn, moveList[bestMoveIndex]);
-			}*/
 		}
 
 		if (depth == MaxDepth)
 		{
 			if (!isFree(moveList[bestMoveIndex].x, moveList[bestMoveIndex].y))
 			{
-				pipeOut("DEBUG ERROR: get an invalid move from TT");
+				pipeOut("DEBUG ERROR: return an invalid move at root node");
 				pipeOut("DEBUG invalid move:[%d,%d]", moveList[bestMoveIndex].x, moveList[bestMoveIndex].y);
 			}
 			else
